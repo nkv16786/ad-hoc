@@ -1,2 +1,2 @@
 # crionlinerepo
-Online repo for Windows Packages for CRI
+Online chocolatey repo for Windows Packages for CRI
