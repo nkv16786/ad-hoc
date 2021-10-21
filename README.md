@@ -1,2 +1,2 @@
-# crionlinerepo
-Online chocolatey repo for Windows Packages for CRI
+# Narinder Private Repo
+This repo contains things that I want to utilize in future
