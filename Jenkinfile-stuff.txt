@@ -1,0 +1,235 @@
+#clone another repo
+steps {
+                git branch: "master",
+                credentialsId: 'bb-svc-eng-ci',
+                url: 'ssh://git@altssh.bitbucket.org:443/healthedge/eng-docker.git'
+            }
+
+#run shell and store output in groovy variable
+GIT_COMMIT_EMAIL = sh (
+    script: 'echo "abc"',
+    returnStdout: true
+).trim()
+
+BUILD_FULL = sh (
+    script: "echo abc",
+    returnStatus: true
+) 
+
+#Active Choice
+properties([
+	parameters([
+		[
+			$class: 'ChoiceParameter', 
+			choiceType: 'PT_SINGLE_SELECT', 
+			description: 'Choose Yes if you want to run Correspondance Tests', 
+			filterLength: 1, 
+			filterable: false, 
+			name: 'RUN_CORRESPONDANCE_TESTS',  
+			script: [
+				$class: 'GroovyScript', 
+				fallbackScript: [
+					classpath: [], 
+					sandbox: false, 
+					script: 'return[\'Please select Correspondance_Tests\']'
+				], 
+				script: [
+					classpath: [], 
+					sandbox: false, 
+					script: '''
+						return[\'no\',\'yes\']
+					'''
+				]
+			]
+		],
+		[
+			$class: 'DynamicReferenceParameter', 
+			choiceType: 'ET_FORMATTED_HTML', 
+			description: 'Provide Test Group you want to run correspondance Test', 
+			name: 'CORRESPONDANCE_TEST_GROUP',
+			omitValueField: true,
+			referencedParameters: 'RUN_CORRESPONDANCE_TESTS', 
+			script: [
+				$class: 'GroovyScript', 
+				script: 'return["Please enter Correspondance Test Groups"]', 
+				script: [
+					script: '''
+						if (RUN_CORRESPONDANCE_TESTS.equals("yes")){
+							return "<input name=\\"value\\" class=\\"setting-input\\" type=\\"text\\" value=\\"com.healthedge.cprime.correspondence.test.accumulators.**\\">"
+						}
+						else {
+							return["NONE"]
+						}
+					'''
+				]
+			]
+		],
+		[
+			$class: 'ChoiceParameter', 
+			choiceType: 'PT_SINGLE_SELECT', 
+			description: 'Choose Yes if you want to run Integration Tests', 
+			filterLength: 1, 
+			filterable: false, 
+			name: 'RUN_INTEG_TESTS',  
+			script: [
+				$class: 'GroovyScript', 
+				fallbackScript: [
+					classpath: [], 
+					sandbox: false, 
+					script: 'return[\'Please select Integ_Tests\']'
+				], 
+				script: [
+					classpath: [], 
+					sandbox: false, 
+					script: '''
+						return[\'no\',\'yes\']
+					'''
+				]
+			]
+		],
+		[
+			$class: 'CascadeChoiceParameter', 
+			choiceType: 'PT_SINGLE_SELECT', 
+			description: 'Choose Yes if you want to run Enrollment Tests',  
+			name: 'ENROLLMENT_TEST',  
+			referencedParameters: 'RUN_INTEG_TESTS', 
+			script: [
+				$class: 'GroovyScript',
+				fallbackScript: [
+					classpath: [], 
+					sandbox: false, 
+					script: "return['Please select ENROLLMENT_TEST']"
+				],
+				script: [
+					classpath: [], 
+					sandbox: false, 
+					script: '''
+						if (RUN_INTEG_TESTS.equals("yes")){
+							return[\'no\',\'yes\']
+						}
+						else if(RUN_INTEG_TESTS.equals("no")){
+							return["NONE"]
+						}
+						
+					'''
+				]
+			]
+		],
+		[
+			$class: 'CascadeChoiceParameter', 
+			choiceType: 'PT_MULTI_SELECT', 
+			description: 'Provide Test Group Category',  
+			name: 'INTEG_TEST_GROUP',  
+			referencedParameters: 'ENROLLMENT_TEST', 
+			script: [
+				$class: 'GroovyScript',
+				fallbackScript: [
+					classpath: [], 
+					sandbox: false, 
+					script: "return['Please select Test Groups']"
+				],
+				script: [
+					classpath: [], 
+					sandbox: false, 
+					script: ''' 
+						if (ENROLLMENT_TEST.equals("yes")){
+							return[\'com.healthedge.cprime.services.**:selected\', \'com.healthedge.cprime.services.enrollment.**\', \'com.healthedge.cprime.services.hmem.**\', \'com.healthedge.cprime.services.lookup.**\', \'com.healthedge.cprime.services.medicarehicn.**\', \'com.healthedge.cprime.services.membercomplianceprogram.**\', \'com.healthedge.cprime.services.enrollmentsparse.**\', \'Others\']
+						}
+						else if(ENROLLMENT_TEST.equals("no")){
+							return[\'com.healthedge.connector.account.**:selected\', \'com.healthedge.connector.accountproperty.**\', \'com.healthedge.connector.authorization.**\', \'com.healthedge.connector.benefitplan.lookup.**\', \'com.healthedge.connector.benefitplan.service.**\', \'com.healthedge.connector.benefitplantemplate.lookup.**\', \'Others\']
+						}
+					'''
+				]
+			]
+		],
+		[
+			$class: 'DynamicReferenceParameter', 
+			choiceType: 'ET_FORMATTED_HTML', 
+			description: 'Please enter the Custom Integ Test Groups. NOTE: To Run multiple groups, provide group name with comma separated without any space between groups, For Example com.healthedge.cvc.impl.finance.**,com.healthedge.connector.service.**', 
+			name: 'INTEG_TEST_GROUP_CUSTOM',
+			omitValueField: true,
+			referencedParameters: 'INTEG_TEST_GROUP', 
+			script: [
+				$class: 'GroovyScript', 
+				script: 'return["Please enter Custom Test Groups"]', 
+				script: [
+					script: '''
+						if (INTEG_TEST_GROUP.equals("Others")){
+							return "<input name=\\"value\\" class=\\"setting-input\\" type=\\"text\\" value=\\"com.healthedge.connector.benefitplan.service.**\\">"
+						}
+						else {
+							return["NONE"]
+						}
+					'''
+				]
+			]
+		],
+		[
+			$class: 'ChoiceParameter',
+			choiceType: 'PT_SINGLE_SELECT',
+			description: 'Make the parameter yes to Auto merge',
+			filterLength: 1,
+			filterable: false,
+			name: 'AUTO_MERGE',
+			script: [
+				$class: 'GroovyScript',
+				fallbackScript: [
+					classpath: [],
+					sandbox: false,
+					script:
+						"return['Could not Auto Merge']"
+				],
+				script: [
+					classpath: [],
+					sandbox: false,
+					script:
+						"return['no','yes']"
+				]
+			]
+		],
+		[
+			$class: 'DynamicReferenceParameter',
+			choiceType: 'ET_FORMATTED_HTML',
+			description: 'Provide the destination branch to merge with',
+			omitValueField: true,
+			name: 'PR_DESTINATION_BRANCH',
+			referencedParameters: 'AUTO_MERGE',
+			script:
+				[$class: 'GroovyScript',
+				script: 'return["AUTO_MERGE is false"]',
+				script: [
+					script: '''
+							if (AUTO_MERGE.equals("yes")){
+								return "<input name=\\"value\\" class=\\"setting-input\\" type=\\"text\\" value=\\"master\\">"
+							}
+							else {
+								return["NONE"]
+							}
+							'''
+						]
+				]
+		],
+		[
+			$class: 'DynamicReferenceParameter',
+			choiceType: 'ET_FORMATTED_HTML',
+			description: 'Provide the repository name to Auto Merge',
+			omitValueField: true,
+			name: 'REPO_NAME',
+			referencedParameters: 'AUTO_MERGE',
+			script:
+				[$class: 'GroovyScript',
+				script: 'return["AUTO_MERGE is false"]',
+				script: [
+					script: '''
+							if (AUTO_MERGE.equals("yes")){
+								return "<input name=\\"value\\" class=\\"setting-input\\" type=\\"text\\" value=\\"connector\\">"
+							}
+							else {
+								return["NONE"]
+							}
+							'''
+						]
+				]
+		]
+	])
+])
