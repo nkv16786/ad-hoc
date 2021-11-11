@@ -233,3 +233,9 @@ properties([
 		]
 	])
 ])
+
+#SHow Info on Jenkins DashBoard RTP
+node('jenkins-master') {
+    currentBuild.result = "SUCCESS"
+    rtp parserName: 'HTML', stableText: '<a href="https://eups.lsst.codes/stack/src">foo</a>'
+}
