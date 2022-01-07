@@ -230,7 +230,54 @@ properties([
 							'''
 						]
 				]
-		]
+		],
+		[
+                $class: 'DynamicReferenceParameter', 
+                choiceType: 'ET_FORMATTED_HTML', 
+                description: 'Please select module and input comma separated test groups',
+                name: 'TEST_DIRECTORY',
+                referencedParameters: 'RUN_INTEG_TESTS', 
+                script: [
+                    $class: 'GroovyScript',
+                    script: [
+                        classpath: [], 
+                        sandbox: false, 
+                        script: ''' 
+                            integ_test_map = [
+                            "yes": [
+                                ["module": "core-st", "test_group": "com.healthedge.customer.integration.services.benefitplan.test.**" ],
+                                ["module": "claims-st", "test_group": "com.healthedge.cvc.impl.claim.test.**" ],
+                            ]
+                            ]
+
+                            html_to_be_rendered = "<table><tr>"
+                            integ_list = integ_test_map[RUN_INTEG_TESTS]
+                            integ_list.each { test ->
+                            html_to_be_rendered = """
+                                ${html_to_be_rendered}
+                                <tr>
+                                <td>
+                                <input name=\"value\" alt=\"${test.module}\" json=\"${test.module}\" type=\"checkbox\" class=\" \">
+                                <label title=\"${test.module}\" class=\" \">${test.module}</label>
+                                </td>
+                                <td>							
+                                <input type=\"text\" class=\" \" name=\"value\" value=\"${test.test_group}\"> </br>
+                                </td>
+                                <td>							
+                                <input type=\"hidden\" class=\" \" name=\"value\" value=\"::\"> </br>
+                                </td>
+                                </tr>
+                            """
+                            }
+
+
+                            html_to_be_rendered = "${html_to_be_rendered}</tr></table>"
+
+                            return html_to_be_rendered
+                        '''
+                    ]
+                ]
+            ]
 	])
 ])
 
@@ -239,3 +286,18 @@ node('jenkins-master') {
     currentBuild.result = "SUCCESS"
     rtp parserName: 'HTML', stableText: '<a href="https://eups.lsst.codes/stack/src">foo</a>'
 }
+
+#SHow PASS
+node {
+    def creds
+
+    stage('Sandbox') {
+		####withCredentials([string(credentialsId: 'test_cred', variable: 'test')])
+        withCredentials([usernamePassword(credentialsId: 'my-creds', passwordVariable: 'C_PASS', usernameVariable: 'C_USER')]) {
+            creds = "\nUser: ${C_USER}\nPassword: ${C_PASS}\n"
+        }
+
+        println creds
+    }
+}
+
