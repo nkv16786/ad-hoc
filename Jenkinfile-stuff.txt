@@ -301,3 +301,9 @@ node {
     }
 }
 
+#Kill Job forcefully Jenkins
+Jenkins.instance
+.getItemByFullName("multi-select")
+.getBuildByNumber(45)
+.finish(hudson.model.Result.ABORTED, new java.io.IOException("Aborting build"));
+
